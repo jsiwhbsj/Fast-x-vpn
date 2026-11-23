@@ -1,0 +1,236 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email_verified == true && request.auth.token.email == 'ltlamiya146@gmail.com')
+      );
+    }
+
+    function isValidVpnServer(data) {
+      return data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+             data.country is string && data.country.size() >= 1 && data.country.size() <= 60 &&
+             data.countryCode is string && data.countryCode.size() >= 2 && data.countryCode.size() <= 4 &&
+             data.city is string && data.city.size() >= 1 && data.city.size() <= 60 &&
+             data.flagEmoji is string && data.flagEmoji.size() >= 1 && data.flagEmoji.size() <= 16 &&
+             data.endpointHost is string && data.endpointHost.size() >= 3 && data.endpointHost.size() <= 253 &&
+             data.endpointPort is int && data.endpointPort >= 1 && data.endpointPort <= 65535 &&
+             data.serverPublicKey is string && data.serverPublicKey.size() <= 128 &&
+             data.dns is string && data.dns.size() >= 3 && data.dns.size() <= 120 &&
+             data.allowedIps is string && data.allowedIps.size() >= 3 && data.allowedIps.size() <= 120 &&
+             data.clientAddressCidr is string && data.clientAddressCidr.size() >= 3 && data.clientAddressCidr.size() <= 64 &&
+             data.mtu is int && data.mtu >= 1200 && data.mtu <= 1500 &&
+             data.persistentKeepalive is int && data.persistentKeepalive >= 0 && data.persistentKeepalive <= 120 &&
+             (!('provisionApiUrl' in data) || (data.provisionApiUrl is string && data.provisionApiUrl.size() <= 300)) &&
+             data.active is bool &&
+             data.latencyMs is int && data.latencyMs >= 0 && data.latencyMs <= 9999 &&
+             data.loadPercent is int && data.loadPercent >= 0 && data.loadPercent <= 100 &&
+             data.bandwidthMbps is int && data.bandwidthMbps >= 0 && data.bandwidthMbps <= 100000;
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 150 &&
+             (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500)) &&
+             data.clientPublicKey is string && data.clientPublicKey.size() <= 128 &&
+             data.totalBytesDown is int && data.totalBytesDown >= 0 &&
+             data.totalBytesUp is int && data.totalBytesUp >= 0 &&
+             data.totalSessions is int && data.totalSessions >= 0 &&
+             data.totalConnectedSeconds is int && data.totalConnectedSeconds >= 0 &&
+             (!('lastServerId' in data) || (data.lastServerId is string && data.lastServerId.size() <= 128)) &&
+             (!('lastServerName' in data) || (data.lastServerName is string && data.lastServerName.size() <= 80)) &&
+             data.autoReconnect is bool &&
+             data.plan == 'FREE';
+    }
+
+    function isValidVpnSession(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.serverId is string && data.serverId.size() >= 1 && data.serverId.size() <= 128 &&
+             data.serverName is string && data.serverName.size() >= 1 && data.serverName.size() <= 80 &&
+             data.country is string && data.country.size() >= 1 && data.country.size() <= 60 &&
+             data.protocol == 'WireGuard' &&
+             data.bytesDown is int && data.bytesDown >= 0 &&
+             data.bytesUp is int && data.bytesUp >= 0 &&
+             data.durationSeconds is int && data.durationSeconds >= 0;
+    }
+
+    function isValidCustomConfig(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+             data.endpointHost is string && data.endpointHost.size() >= 3 && data.endpointHost.size() <= 253 &&
+             data.endpointPort is int && data.endpointPort >= 1 && data.endpointPort <= 65535 &&
+             data.serverPublicKey is string && data.serverPublicKey.size() >= 32 && data.serverPublicKey.size() <= 128 &&
+             data.clientAddressCidr is string && data.clientAddressCidr.size() >= 3 && data.clientAddressCidr.size() <= 64 &&
+             data.dns is string && data.dns.size() >= 3 && data.dns.size() <= 120 &&
+             data.allowedIps is string && data.allowedIps.size() >= 3 && data.allowedIps.size() <= 120 &&
+             data.mtu is int && data.mtu >= 1200 && data.mtu <= 1500;
+    }
+
+    match /admins/{uid} {
+      allow get: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() &&
+                               isValidId(uid) &&
+                               incoming().keys().hasAll(['uid', 'email', 'createdAt']) &&
+                               incoming().keys().hasOnly(['uid', 'email', 'createdAt']) &&
+                               incoming().uid == uid &&
+                               incoming().email is string &&
+                               incoming().email.size() >= 3 &&
+                               incoming().email.size() <= 150 &&
+                               incoming().createdAt is timestamp &&
+                               incoming().createdAt <= request.time;
+      allow delete: if isAdmin() && isValidId(uid) && uid != request.auth.uid;
+    }
+
+    match /vpn_servers/{serverId} {
+      allow get, list: if isSignedIn() && (existing().active == true || isAdmin());
+      allow create: if isAdmin() &&
+                       isValidId(serverId) &&
+                       incoming().keys().hasAll([
+                         'name', 'country', 'countryCode', 'city', 'flagEmoji',
+                         'endpointHost', 'endpointPort', 'serverPublicKey',
+                         'dns', 'allowedIps', 'clientAddressCidr', 'mtu',
+                         'persistentKeepalive', 'active', 'latencyMs',
+                         'loadPercent', 'bandwidthMbps', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'name', 'country', 'countryCode', 'city', 'flagEmoji',
+                         'endpointHost', 'endpointPort', 'serverPublicKey',
+                         'dns', 'allowedIps', 'clientAddressCidr', 'mtu',
+                         'persistentKeepalive', 'provisionApiUrl', 'active',
+                         'latencyMs', 'loadPercent', 'bandwidthMbps', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidVpnServer(incoming());
+      allow update: if isAdmin() &&
+                       isValidId(serverId) &&
+                       isValidVpnServer(incoming()) &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'name', 'country', 'countryCode', 'city', 'flagEmoji',
+                         'endpointHost', 'endpointPort', 'serverPublicKey',
+                         'dns', 'allowedIps', 'clientAddressCidr', 'mtu',
+                         'persistentKeepalive', 'provisionApiUrl', 'active',
+                         'latencyMs', 'loadPercent', 'bandwidthMbps', 'updatedAt'
+                       ]);
+      allow delete: if isAdmin() && isValidId(serverId);
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll([
+                         'userId', 'displayName', 'email', 'clientPublicKey',
+                         'totalBytesDown', 'totalBytesUp', 'totalSessions',
+                         'totalConnectedSeconds', 'autoReconnect', 'plan',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'displayName', 'email', 'photoUrl', 'clientPublicKey',
+                         'totalBytesDown', 'totalBytesUp', 'totalSessions',
+                         'totalConnectedSeconds', 'lastServerId', 'lastServerName',
+                         'autoReconnect', 'plan', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidUserProfile(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       (isAdmin() || (
+                         request.auth.uid == userId &&
+                         incoming().plan == existing().plan &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'displayName', 'email', 'photoUrl', 'clientPublicKey',
+                           'totalBytesDown', 'totalBytesUp', 'totalSessions',
+                           'totalConnectedSeconds', 'lastServerId', 'lastServerName',
+                           'autoReconnect', 'updatedAt'
+                         ])
+                       ));
+      allow delete: if isAdmin() && isValidId(userId);
+
+      match /sessions/{sessionId} {
+        allow get, list: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow create: if isSignedIn() &&
+                         isValidId(sessionId) &&
+                         request.auth.uid == userId &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll([
+                           'userId', 'serverId', 'serverName', 'country',
+                           'protocol', 'bytesDown', 'bytesUp', 'durationSeconds', 'createdAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'serverId', 'serverName', 'country',
+                           'protocol', 'bytesDown', 'bytesUp', 'durationSeconds', 'createdAt'
+                         ]) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         isValidVpnSession(incoming());
+        allow delete: if isSignedIn() && isValidId(sessionId) && (request.auth.uid == userId || isAdmin());
+      }
+
+      match /custom_configs/{configId} {
+        allow get, list: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow create: if isSignedIn() &&
+                         isValidId(configId) &&
+                         request.auth.uid == userId &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll([
+                           'userId', 'name', 'endpointHost', 'endpointPort',
+                           'serverPublicKey', 'clientAddressCidr', 'dns',
+                           'allowedIps', 'mtu', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'name', 'endpointHost', 'endpointPort',
+                           'serverPublicKey', 'clientAddressCidr', 'dns',
+                           'allowedIps', 'mtu', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidCustomConfig(incoming());
+        allow update: if isSignedIn() &&
+                         isValidId(configId) &&
+                         request.auth.uid == userId &&
+                         isValidCustomConfig(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'name', 'endpointHost', 'endpointPort', 'serverPublicKey',
+                           'clientAddressCidr', 'dns', 'allowedIps', 'mtu', 'updatedAt'
+                         ]);
+        allow delete: if isSignedIn() && isValidId(configId) && (request.auth.uid == userId || isAdmin());
+      }
+    }
+  }
+}

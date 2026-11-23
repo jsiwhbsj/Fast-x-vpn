@@ -1,0 +1,6 @@
+{
+  "name": "Fast X VPN",
+  "description": "Free WireGuard VPN Android application with multi-region server selection, live speed monitoring, auto-reconnect, user dashboard, Firebase backend, and admin management panel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

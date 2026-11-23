@@ -1,0 +1,179 @@
+{
+  "entities": {
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized Fast X VPN administrator record",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "VpnServer": {
+      "title": "VpnServer",
+      "description": "WireGuard VPN VPS node configuration managed by admins",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "country": { "type": "string" },
+        "countryCode": { "type": "string" },
+        "city": { "type": "string" },
+        "flagEmoji": { "type": "string" },
+        "endpointHost": { "type": "string" },
+        "endpointPort": { "type": "integer" },
+        "serverPublicKey": { "type": "string" },
+        "dns": { "type": "string" },
+        "allowedIps": { "type": "string" },
+        "clientAddressCidr": { "type": "string" },
+        "mtu": { "type": "integer" },
+        "persistentKeepalive": { "type": "integer" },
+        "provisionApiUrl": { "type": "string" },
+        "active": { "type": "boolean" },
+        "latencyMs": { "type": "integer" },
+        "loadPercent": { "type": "integer" },
+        "bandwidthMbps": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "name",
+        "country",
+        "countryCode",
+        "city",
+        "flagEmoji",
+        "endpointHost",
+        "endpointPort",
+        "serverPublicKey",
+        "dns",
+        "allowedIps",
+        "clientAddressCidr",
+        "mtu",
+        "persistentKeepalive",
+        "active",
+        "latencyMs",
+        "loadPercent",
+        "bandwidthMbps",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated VPN user profile, device public key, and usage totals",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "photoUrl": { "type": "string" },
+        "clientPublicKey": { "type": "string" },
+        "totalBytesDown": { "type": "integer" },
+        "totalBytesUp": { "type": "integer" },
+        "totalSessions": { "type": "integer" },
+        "totalConnectedSeconds": { "type": "integer" },
+        "lastServerId": { "type": "string" },
+        "lastServerName": { "type": "string" },
+        "autoReconnect": { "type": "boolean" },
+        "plan": { "type": "string", "enum": ["FREE"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "email",
+        "clientPublicKey",
+        "totalBytesDown",
+        "totalBytesUp",
+        "totalSessions",
+        "totalConnectedSeconds",
+        "autoReconnect",
+        "plan",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "VpnSession": {
+      "title": "VpnSession",
+      "description": "Recorded WireGuard VPN connection session telemetry",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "serverId": { "type": "string" },
+        "serverName": { "type": "string" },
+        "country": { "type": "string" },
+        "protocol": { "type": "string", "enum": ["WireGuard"] },
+        "bytesDown": { "type": "integer" },
+        "bytesUp": { "type": "integer" },
+        "durationSeconds": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "serverId",
+        "serverName",
+        "country",
+        "protocol",
+        "bytesDown",
+        "bytesUp",
+        "durationSeconds",
+        "createdAt"
+      ]
+    },
+    "CustomWireGuardConfig": {
+      "title": "CustomWireGuardConfig",
+      "description": "User-owned custom WireGuard VPS configuration metadata (private key stored on-device only)",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "endpointHost": { "type": "string" },
+        "endpointPort": { "type": "integer" },
+        "serverPublicKey": { "type": "string" },
+        "clientAddressCidr": { "type": "string" },
+        "dns": { "type": "string" },
+        "allowedIps": { "type": "string" },
+        "mtu": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "name",
+        "endpointHost",
+        "endpointPort",
+        "serverPublicKey",
+        "clientAddressCidr",
+        "dns",
+        "allowedIps",
+        "mtu",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/admins/{uid}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Admin role directory"
+    },
+    "/vpn_servers/{serverId}": {
+      "schema": { "$ref": "#/entities/VpnServer" },
+      "description": "Global VPN server nodes managed by admins"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Authenticated user profiles and dashboard usage metrics"
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/VpnSession" },
+      "description": "Per-user WireGuard connection history"
+    },
+    "/users/{userId}/custom_configs/{configId}": {
+      "schema": { "$ref": "#/entities/CustomWireGuardConfig" },
+      "description": "Per-user custom WireGuard endpoint metadata"
+    }
+  }
+}

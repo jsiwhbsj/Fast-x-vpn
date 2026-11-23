@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Fast X VPN</string>
+    <string name="protocol_wireguard">WireGuard®</string>
+    <string name="plan_free_badge">100% FREE • UNLIMITED</string>
+    <string name="sign_in_with_google">Continue with Google</string>
+    <string name="vpn_connect">Tap to Connect</string>
+    <string name="vpn_disconnect">Disconnect</string>
+    <string name="vpn_connecting">Establishing WireGuard Tunnel…</string>
+    <string name="vpn_connected">Protected via WireGuard</string>
+    <string name="vpn_reconnecting">Auto-Reconnecting Tunnel…</string>
+    <string name="vpn_disconnected">Not Connected</string>
+    <string name="nav_home">VPN</string>
+    <string name="nav_servers">Servers</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_admin">Admin</string>
+    <string name="error_vpn_permission_denied">VPN permission is required to start the encrypted WireGuard tunnel.</string>
+    <string name="error_no_server_selected">Select a VPN server node or add a custom WireGuard config first.</string>
+</resources>
